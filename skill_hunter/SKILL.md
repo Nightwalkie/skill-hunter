@@ -78,6 +78,7 @@ Create `Github Report YYYY-MM-DD.md` in the project root, using the current date
 - **Author**: owner
 - **Stars**: N
 - **Discovered**: YYYY-MM-DD
+- **First Published**: YYYY-MM-DD
 - **Status**: new
 
 **English Description**: <description_en>
@@ -95,6 +96,7 @@ Create `Github Report YYYY-MM-DD.md` in the project root, using the current date
 - **Author**: owner
 - **Stars**: N
 - **Discovered**: YYYY-MM-DD
+- **First Published**: YYYY-MM-DD
 - **Status**: updated
 
 **English Description**: <description_en>
@@ -109,8 +111,14 @@ Create `Github Report YYYY-MM-DD.md` in the project root, using the current date
 - Sort new skills first, then updated skills. Within each section, order by `stars` descending.
 - If a section has no entries, write: `None this week.`
 - The `owner/repo` heading links to `https://github.com/owner/repo`.
-- Use the `publish_date` field from `raw-data.json` for `Discovered`.
-- Use the `stars` field from `raw-data.json`.
+- **`Discovered`**: Use **today's date** (the date this report is generated, the date the crawler actually ran). Format: `YYYY-MM-DD`.
+- **`First Published`**: Use the `publish_date` field from `raw-data.json` (when the repo was first created on GitHub, i.e., `created_at`). Only include this line if `publish_date` differs from today's date.
+- **`Stars`**: Use the `stars` field from `raw-data.json`.
+
+**Field meanings in raw-data.json:**
+- `publish_date`: When the repo was first created on GitHub (`created_at`). This is the repo's original publication date, NOT the discovery date.
+- `last_update`: When the repo was last pushed to (`pushed_at`).
+- `Discovered` in the report: Today's date (when the crawler found and processed it).
 
 ### Step 6: Update the Index
 
