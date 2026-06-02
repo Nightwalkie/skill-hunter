@@ -16,7 +16,7 @@ def run() -> None:
         2. Search GitHub for repos containing SKILL.md + claude code.
         3. Classify results via IndexManager (new / updated / skip).
         4. Combine new + updated candidates; discard skipped.
-        5. Download SKILL.md and enrich metadata for each candidate.
+        5. Download README.md and enrich metadata for each candidate.
         6. Write results to raw-data.json in the project root.
     """
     try:
@@ -79,18 +79,18 @@ def run() -> None:
         print(f"Processing {len(candidates)} candidates...")
         total = len(candidates)
 
-        # 5. Download SKILL.md and enrich metadata
+        # 5. Download README.md and enrich metadata
         output = []
         for i, candidate in enumerate(candidates, start=1):
             owner = candidate["owner"]
             repo = candidate["repo"]
             label = f"{owner}/{repo}"
 
-            print(f"Downloading SKILL.md ({i}/{total}): {label}...")
+            print(f"Downloading README.md ({i}/{total}): {label}...")
 
-            file_content = client.download_file(owner, repo, "SKILL.md")
+            file_content = client.download_file(owner, repo, "README.md")
             if file_content is None:
-                print(f"  (no SKILL.md found for {label}, skipping)")
+                print(f"  (no README.md found for {label}, skipping)")
                 continue
 
             metadata = client.get_repo_metadata(owner, repo)
@@ -104,7 +104,7 @@ def run() -> None:
                     "publish_date": candidate["created_at"],
                     "last_update": candidate["pushed_at"],
                     "stars": metadata.get("stars", 0),
-                    "skill_md_content": file_content,
+                    "readme_content": file_content,
                     "index_status": (
                         "new" if candidate in classification["new"] else "updated"
                     ),

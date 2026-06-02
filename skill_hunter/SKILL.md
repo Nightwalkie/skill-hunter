@@ -22,7 +22,7 @@ python skill_hunter/crawler.py
 The crawler will:
 - Search GitHub for repos containing `SKILL.md` and `claude code` published/updated within the configured lookback window (`config.json` -> `lookback_days`, default 7 days).
 - Classify candidates against `skill-index.json` as **new**, **updated**, or **skip**.
-- Download `SKILL.md` content and repo metadata for each candidate.
+- Download `README.md` content and repo metadata for each candidate.
 - Write the results to `raw-data.json` in the project root.
 
 If the script fails (non-zero exit code), report the error to the user and **stop here**.
@@ -39,18 +39,18 @@ Then **stop here**. The crawler already printed "No new or updated skills found 
 
 ### Step 3: Filter Candidates with AI
 
-For each entry in `raw-data.json`, inspect the `skill_md_content` field to determine whether it is a genuine Claude Code Skill.
+For each entry in `raw-data.json`, inspect the `readme_content` field to determine whether the repository is a genuine Claude Code Skill repository or a skill collection repository.
 
-**Whitelist rule (skip AI filter):** If `index_status` is `"updated"`, the skill is already confirmed in `skill-index.json`. Trust it as genuine and skip AI judgment.
+**Whitelist rule (skip AI filter):** If `index_status` is `"updated"`, the repo is already confirmed in `skill-index.json`. Trust it as genuine and skip AI judgment.
 
-**For `index_status: "new"` entries**, apply these checks:
+**For `index_status: "new"` entries**, read the `readme_content` and judge whether this repository is a Claude Code Skill repository or a skill collection repository. A skill repo README typically:
 
-1. **YAML frontmatter:** Does the `skill_md_content` start with `---` and contain `name:` and `description:` fields? Skills MUST have both.
-2. **Skill document structure:** Does the content read like a Claude Code skill instruction document? Look for typical sections such as:
-   - `what-to-do` / `workflow` / `process` / `steps` / `instructions`
-   - `supporting-info` / `context` / `guidelines`
-   - Any structured workflow or step-by-step guidance for an AI agent
-3. **Discard** entries that are NOT real skills — for example, a generic `SKILL.md` that describes a project's own build steps, or a markdown file that happens to be named `SKILL.md` but has no Claude Code skill structure.
+1. **Describes what skills are included** and what they do
+2. **Mentions Claude Code** or Claude Code Skills explicitly
+3. **Explains how to install/use the skills** (e.g., `git clone` to `.claude/skills/`, or similar instructions)
+4. **Has sections listing skills** with their names, descriptions, or categories
+
+**Discard** entries that are NOT skill repos — for example, a repo that happens to mention "SKILL.md" in passing but is primarily something else (a general docs repo, a template project unrelated to skills, etc.).
 
 After filtering, print a summary to the user:
 
@@ -58,19 +58,17 @@ After filtering, print a summary to the user:
 
 ### Step 4: Generate Bilingual Descriptions
 
-For each **confirmed** skill (both new and updated entries that pass Step 3), read the full `skill_md_content` and produce two descriptions:
+For each **confirmed** repo (both new and updated entries that pass Step 3), read the full `readme_content` and produce two descriptions:
 
-- **`description_en`**: 2-4 English sentences summarizing what the skill does, when to use it, and what problem it solves. Write naturally — this is not a translation of the Chinese version.
+- **`description_en`**: 2-4 English sentences summarizing what skills this repo offers, when to use them, and what problems they solve. Since the README describes the whole repo (possibly a skill collection), the description should summarize what this collection offers. Write naturally — this is not a translation of the Chinese version.
 - **`description_zh`**: 2-4 Chinese sentences covering the same information, written naturally in Chinese. Not a stiff word-for-word translation of the English version.
-
-**Multi-skill repos:** Some repositories contain more than one `SKILL.md` (e.g., in subdirectories). The `skill_md_content` field will already contain all of them concatenated (the crawler handles this). When generating descriptions, summarize all skills in the repo together — describe the collection as a whole rather than each individual file.
 
 ### Step 5: Write the Report
 
-Create `Github Report YYYY-MM-DD.md` in the project root, using the current date (e.g., `Github Report 2026-06-02.md`). Use this exact format:
+Create `Github Report YYYY-MM-DD HH-MM.md` in the project root, using the current date and time in 24-hour local time (e.g., `Github Report 2026-06-02 14-30.md`). Use this exact format:
 
 ```markdown
-# Github Report YYYY-MM-DD
+# Github Report YYYY-MM-DD HH-MM
 
 ## New Skills
 
@@ -143,11 +141,11 @@ Replace `<paste the list...>` with an actual Python list of dicts. Each dict mus
 
 Tell the user where the report file is located and provide a summary:
 
-> Found N new skills and M updated skills. Report: Github Report YYYY-MM-DD.md
+> Found N new skills and M updated skills. Report: Github Report YYYY-MM-DD HH-MM.md
 
 ## Important Notes
 
-- **Crawler's job:** Searching, downloading `SKILL.md` files, classifying against the existing index (`new` / `updated` / `skip`), and writing `raw-data.json`.
+- **Crawler's job:** Searching, downloading `README.md` files, classifying against the existing index (`new` / `updated` / `skip`), and writing `raw-data.json`.
 - **Agent's job:** AI filtering (Step 3), generating descriptions (Step 4), writing the report (Step 5), and updating the index (Step 6).
 - **Read tool:** Always use the Read tool to read `raw-data.json` — do not shell out to `cat`/`grep`/`jq`.
 - **CLAUDE.md compliance:** Delegate Python execution work to scripts (crawler, inline IndexManager snippet). The Agent makes judgment calls (filtering, descriptions) and writes the report.
