@@ -5,3 +5,6 @@ venv/
 .venv/
 .claude/
 skill_hunter/config.json
+skill-index.json
+raw-data.json
+Github Report*.md
