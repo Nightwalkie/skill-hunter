@@ -1,10 +1,27 @@
+# Python bytecode
 __pycache__/
 *.pyc
+*.pyo
+
+# Environment
 .env
-venv/
-.venv/
+*.env
+
+# Claude Code
 .claude/
-skill_hunter/config.json
+
+# Skill Hunter runtime
 skill-index.json
 raw-data.json
 Github Report*.md
+
+# Config with secrets
+skill_hunter/config.json
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# VS Code
+.vscode/
+*.code-workspace
