@@ -23,14 +23,6 @@ class GitHubClient:
         self.token: str = config.get("github_token", "") or ""
         self.lookback_days: int = config.get("lookback_days", 7)
         self.max_results: int = config.get("max_results", 100)
-        self._no_token_warned = False
-
-        if not self.token and not self._no_token_warned:
-            print(
-                "Tip: add a GitHub token to skill_hunter/config.json "
-                "for higher rate limits (60 req/hr → 5000 req/hr)"
-            )
-            self._no_token_warned = True
 
     # ------------------------------------------------------------------
     # Internal helpers
@@ -42,6 +34,32 @@ class GitHubClient:
         if self.token:
             return {"Authorization": f"Bearer {self.token}"}
         return {}
+
+    def _get(
+        self, url: str, params: dict | None = None, timeout: int = 30
+    ) -> requests.Response | None:
+        """Make a GET request with timeout, one retry on timeout,
+        and connection error handling.
+
+        Returns:
+            The response object, or None if the request could not be completed.
+        """
+        try:
+            return requests.get(
+                url, headers=self._auth_headers, params=params, timeout=timeout
+            )
+        except requests.Timeout:
+            print("Network timeout accessing GitHub API. Retrying once...")
+            try:
+                return requests.get(
+                    url, headers=self._auth_headers, params=params, timeout=timeout
+                )
+            except (requests.Timeout, requests.ConnectionError):
+                print("GitHub API unavailable. Skipping this request.")
+                return None
+        except requests.ConnectionError:
+            print("Cannot connect to GitHub. Check your network connection.")
+            return None
 
     # ------------------------------------------------------------------
     # Public API
@@ -84,7 +102,9 @@ class GitHubClient:
             "per_page": max_results,
         }
 
-        resp = requests.get(url, headers=self._auth_headers, params=params)
+        resp = self._get(url, params=params)
+        if resp is None:
+            return []
 
         if resp.status_code == 403 and "rate limit" in resp.text.lower():
             reset_ts = resp.headers.get("X-RateLimit-Reset")
@@ -125,7 +145,9 @@ class GitHubClient:
             or None on failure.
         """
         url = f"https://api.github.com/repos/{owner}/{repo}"
-        resp = requests.get(url, headers=self._auth_headers)
+        resp = self._get(url)
+        if resp is None:
+            return None
 
         if resp.status_code == 404:
             return None
@@ -154,7 +176,9 @@ class GitHubClient:
             The file contents as a string, or None on failure (including 404).
         """
         url = f"https://api.github.com/repos/{owner}/{repo}/contents/{path}"
-        resp = requests.get(url, headers=self._auth_headers)
+        resp = self._get(url)
+        if resp is None:
+            return None
 
         if resp.status_code == 404:
             return None
@@ -167,7 +191,9 @@ class GitHubClient:
 
         # For files < 1 MB the API includes a download_url
         if item.get("download_url"):
-            dl = requests.get(item["download_url"], headers=self._auth_headers)
+            dl = self._get(item["download_url"])
+            if dl is None:
+                return None
             if dl.ok:
                 return dl.text
             print(f"download_file: download_url returned HTTP {dl.status_code}")

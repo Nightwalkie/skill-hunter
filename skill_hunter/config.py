@@ -16,7 +16,7 @@ def load_config(config_path: str | None = None) -> Dict[str, Any]:
 
     Args:
         config_path: Optional path to a config.json file.
-                     Defaults to config.json in the same directory as this module.
+                     Defaults to ``{project_root}/skill_hunter/config.json``.
 
     Returns:
         A dict with the merged configuration.
@@ -26,9 +26,18 @@ def load_config(config_path: str | None = None) -> Dict[str, Any]:
 
     config = dict(DEFAULT_CONFIG)
 
-    if os.path.exists(config_path):
+    if not os.path.exists(config_path):
+        os.makedirs(os.path.dirname(config_path), exist_ok=True)
+        with open(config_path, "w", encoding="utf-8") as f:
+            json.dump(DEFAULT_CONFIG, f, indent=2, ensure_ascii=False)
+        return config
+
+    try:
         with open(config_path, "r", encoding="utf-8") as f:
             file_config = json.load(f)
-            config.update(file_config)
+    except (json.JSONDecodeError, OSError):
+        print("Warning: config.json is corrupted, using defaults")
+        return config
 
+    config.update(file_config)
     return config

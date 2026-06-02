@@ -35,8 +35,11 @@ class IndexManager:
         try:
             with open(self.index_path, "r", encoding="utf-8") as f:
                 return json.load(f)
-        except (json.JSONDecodeError, OSError) as e:
-            print(f"Warning: Failed to load index from {self.index_path}: {e}")
+        except (json.JSONDecodeError, OSError):
+            print(
+                f"Warning: skill-index.json is corrupted, "
+                f"using empty index"
+            )
             return {}
 
     def save_index(self, index: dict[str, Any]) -> None:
