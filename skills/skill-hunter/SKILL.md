@@ -5,31 +5,37 @@ description: Search GitHub for newly published or updated Claude Code Skills fro
 
 # skill-hunter
 
-This skill defines the Agent workflow for `/skill-hunter`. The crawler script (`skills/skill-hunter/scripts/crawler.py`) handles searching GitHub and downloading raw data. The Agent handles judgment, description generation, and report writing.
+This skill defines the Agent workflow for `/skill-hunter`. The crawler script handles searching GitHub and downloading raw data. The Agent handles judgment, description generation, and report writing.
 
 ## Workflow
+
+**Path definitions for this run:**
+- `SKILL_DIR` = directory containing this SKILL.md
+- `SCRIPTS` = `SKILL_DIR/scripts/`
+- `CWD` = the user's current working directory (where they invoked the skill)
+- Project files (`skill-index.json`, `raw-data.json`, reports) go under `<CWD>/`
 
 Follow these steps in order. Stop at any step if a required condition is not met.
 
 ### Step 1: Run the Crawler
 
-Execute the crawler script from the project root:
+Execute the crawler script:
 
 ```bash
-python skills/skill-hunter/scripts/crawler.py
+python "<SCRIPTS>/crawler.py"
 ```
 
 The crawler will:
-- Search GitHub for repos containing `SKILL.md` and `claude code` published/updated within the configured lookback window (`config.json` -> `lookback_days`, default 7 days).
-- Classify candidates against `skill-index.json` as **new**, **updated**, or **skip**.
+- Search GitHub for repos containing `SKILL.md` and `claude code` published/updated within the configured lookback window (`<SCRIPTS>/config.json` -> `lookback_days`, default 7 days).
+- Classify candidates against `<CWD>/skill-index.json` as **new**, **updated**, or **skip**.
 - Download `README.md` content and repo metadata for each candidate.
-- Write the results to `raw-data.json` in the project root.
+- Write the results to `<CWD>/raw-data.json`.
 
 If the script fails (non-zero exit code), report the error to the user and **stop here**.
 
 ### Step 2: Read raw-data.json
 
-Use the Read tool to load `raw-data.json` from the project root. Do NOT use `cat` or shell commands to read it.
+Use the Read tool to load `<CWD>/raw-data.json`. Do NOT use `cat` or shell commands to read it.
 
 If the file is missing, the JSON array is empty (`[]`), or the array contains no entries, tell the user:
 
@@ -39,7 +45,7 @@ Then **stop here**. The crawler already printed "No new or updated skills found 
 
 ### Step 3: Filter Candidates with AI
 
-For each entry in `raw-data.json`, inspect the `readme_content` field to determine whether the repository is a genuine Claude Code Skill repository or a skill collection repository.
+For each entry in `<CWD>/raw-data.json`, inspect the `readme_content` field to determine whether the repository is a genuine Claude Code Skill repository or a skill collection repository.
 
 **Whitelist rule (skip AI filter):** If `index_status` is `"updated"`, the repo is already confirmed in `skill-index.json`. Trust it as genuine and skip AI judgment.
 
@@ -65,7 +71,7 @@ For each **confirmed** repo (both new and updated entries that pass Step 3), rea
 
 ### Step 5: Write the Report
 
-Create `Github Report YYYY-MM-DD HH-MM.md` in the project root, using the current date and time in 24-hour local time (e.g., `Github Report 2026-06-02 14-30.md`). Use this exact format:
+Create `<CWD>/Github Report YYYY-MM-DD HH-MM.md`, using the current date and time in 24-hour local time (e.g., `Github Report 2026-06-02 14-30.md`). Use this exact format:
 
 ```markdown
 # Github Report YYYY-MM-DD HH-MM
@@ -120,11 +126,11 @@ Create `Github Report YYYY-MM-DD HH-MM.md` in the project root, using the curren
 
 ### Step 6: Update the Index
 
-Add all confirmed skills to `skill-index.json` using the `IndexManager.add_entries()` method. Run this as a small inline Python snippet from the project root:
+Add all confirmed skills to `<CWD>/skill-index.json` using the `IndexManager.add_entries()` method. Run this as a small inline Python snippet:
 
 ```python
 import json, sys
-sys.path.insert(0, "skills/skill-hunter/scripts")
+sys.path.insert(0, '<SCRIPTS>')
 from index_manager import IndexManager
 
 entries = <paste the list of confirmed entry dicts here as a Python literal>
@@ -145,8 +151,8 @@ Tell the user where the report file is located and provide a summary:
 
 ## Important Notes
 
-- **Crawler's job:** Searching, downloading `README.md` files, classifying against the existing index (`new` / `updated` / `skip`), and writing `raw-data.json`.
+- **Crawler's job:** Searching, downloading `README.md` files, classifying against the existing index (`new` / `updated` / `skip`), and writing `<CWD>/raw-data.json`.
 - **Agent's job:** AI filtering (Step 3), generating descriptions (Step 4), writing the report (Step 5), and updating the index (Step 6).
-- **Read tool:** Always use the Read tool to read `raw-data.json` — do not shell out to `cat`/`grep`/`jq`.
+- **Read tool:** Always use the Read tool to read `<CWD>/raw-data.json` — do not shell out to `cat`/`grep`/`jq`.
 - **CLAUDE.md compliance:** Delegate Python execution work to scripts (crawler, inline IndexManager snippet). The Agent makes judgment calls (filtering, descriptions) and writes the report.
 - **HITL gate:** After writing the report, do NOT commit or push. The user reviews the report before any git operations.
