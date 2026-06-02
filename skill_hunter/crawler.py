@@ -3,7 +3,7 @@
 import json
 import os
 
-from skill_hunter.config import load_config
+from skill_hunter.config import load_config, validate_token
 from skill_hunter.github_client import GitHubClient
 from skill_hunter.index_manager import IndexManager
 
@@ -12,7 +12,7 @@ def run() -> None:
     """Entry point for the skill-hunter crawler pipeline.
 
     Pipeline steps:
-        1. Load config (lookback_days, max_results).
+        1. Load config and validate GitHub token (mandatory).
         2. Search GitHub for repos containing SKILL.md + claude code.
         3. Classify results via IndexManager (new / updated / skip).
         4. Combine new + updated candidates; discard skipped.
@@ -21,14 +21,27 @@ def run() -> None:
     """
     try:
         config = load_config()
+
+        # 1. Validate GitHub token (mandatory)
+        github_token: str = config.get("github_token", "") or ""
+        if not github_token:
+            print(
+                "Error: No GitHub token found in skill_hunter/config.json. "
+                "Add a Personal Access Token with 'public_repo' scope from "
+                "https://github.com/settings/tokens"
+            )
+            return
+
+        print("Validating GitHub token...")
+        token_result = validate_token(github_token)
+        if not token_result["valid"]:
+            print(f"Token validation failed: {token_result['error']}")
+            return
+
+        print(f"Token validated (user: {token_result['user']})")
+
         lookback_days = config["lookback_days"]
         max_results = config["max_results"]
-
-        if not config.get("github_token"):
-            print(
-                "Tip: add a GitHub token to skill_hunter/config.json "
-                "for higher rate limits (60 req/hr → 5000 req/hr)"
-            )
 
         # 2. Search GitHub
         client = GitHubClient()

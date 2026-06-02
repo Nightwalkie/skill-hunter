@@ -107,12 +107,16 @@ class GitHubClient:
             return []
 
         if resp.status_code == 403 and "rate limit" in resp.text.lower():
+            remaining = resp.headers.get("X-RateLimit-Remaining", "?")
             reset_ts = resp.headers.get("X-RateLimit-Reset")
             reset_msg = ""
             if reset_ts:
                 reset_time = datetime.fromtimestamp(int(reset_ts))
-                reset_msg = f" Resets at {reset_time}"
-            print(f"GitHub rate limit exceeded.{reset_msg}")
+                reset_msg = f", resets at {reset_time}"
+            print(
+                f"GitHub rate limit exceeded "
+                f"(remaining: {remaining}{reset_msg})"
+            )
             return []
 
         if not resp.ok:
@@ -152,6 +156,11 @@ class GitHubClient:
         if resp.status_code == 404:
             return None
 
+        if resp.status_code == 403 and "rate limit" in resp.text.lower():
+            remaining = resp.headers.get("X-RateLimit-Remaining", "?")
+            print(f"GitHub rate limit exceeded (remaining: {remaining})")
+            return None
+
         if not resp.ok:
             print(f"get_repo_metadata: HTTP {resp.status_code}")
             return None
@@ -181,6 +190,11 @@ class GitHubClient:
             return None
 
         if resp.status_code == 404:
+            return None
+
+        if resp.status_code == 403 and "rate limit" in resp.text.lower():
+            remaining = resp.headers.get("X-RateLimit-Remaining", "?")
+            print(f"GitHub rate limit exceeded (remaining: {remaining})")
             return None
 
         if not resp.ok:
