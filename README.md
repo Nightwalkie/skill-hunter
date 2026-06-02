@@ -35,7 +35,7 @@ npx skills add Nightwalkie/skill-hunter -g
 
 Run `/skill-hunter` in Claude Code.
 
-On first run, add your GitHub token to `skill_hunter/config.json`:
+On first run, add your GitHub token to `skills/skill-hunter/scripts/config.json`:
 ```json
 {
   "github_token": "ghp_xxxxxxxxxxxx",

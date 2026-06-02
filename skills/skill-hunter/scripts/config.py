@@ -4,23 +4,23 @@ import json
 import os
 import urllib.error
 import urllib.request
-from typing import Any
+from typing import Any, Dict, Optional
 
-DEFAULT_CONFIG: dict[str, Any] = {
+DEFAULT_CONFIG: Dict[str, Any] = {
     "github_token": "",
     "lookback_days": 7,
     "max_results": 100,
 }
 
 
-def load_config(config_path: str | None = None) -> dict[str, Any]:
+def load_config(config_path: Optional[str] = None) -> Dict[str, Any]:
     """Load configuration from config.json, falling back to defaults.
 
     Does NOT auto-create config.json — the token must be set by the user.
 
     Args:
         config_path: Optional path to a config.json file.
-                     Defaults to ``{project_root}/skill_hunter/config.json``.
+                     Defaults to ``{scripts_dir}/config.json``.
 
     Returns:
         A dict with the merged configuration.
@@ -45,7 +45,7 @@ def load_config(config_path: str | None = None) -> dict[str, Any]:
     return config
 
 
-def validate_token(token: str) -> dict[str, Any]:
+def validate_token(token: str) -> Dict[str, Any]:
     """Validate a GitHub Personal Access Token via the GitHub API.
 
     Args:

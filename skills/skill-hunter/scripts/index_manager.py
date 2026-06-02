@@ -3,27 +3,26 @@
 import datetime
 import json
 import os
-from typing import Any
+from typing import Any, Dict, List, Optional
 
 
 class IndexManager:
     """Manages a local index of known skills for change detection."""
 
-    def __init__(self, index_path: str | None = None) -> None:
+    def __init__(self, index_path: Optional[str] = None) -> None:
         """Initialize the index manager.
 
         Args:
             index_path: Optional path to the index file.
-                        Defaults to skill-index.json at the project root
-                        (parent of the skill_hunter/ package directory).
+                        Defaults to skill-index.json at the project root.
         """
         if index_path is None:
-            skill_hunter_dir = os.path.dirname(os.path.abspath(__file__))
-            project_root = os.path.dirname(skill_hunter_dir)
+            scripts_dir = os.path.dirname(os.path.abspath(__file__))
+            project_root = os.path.dirname(os.path.dirname(os.path.dirname(scripts_dir)))
             index_path = os.path.join(project_root, "skill-index.json")
         self.index_path = index_path
 
-    def load_index(self) -> dict[str, Any]:
+    def load_index(self) -> Dict[str, Any]:
         """Load the existing index from disk.
 
         Returns:
@@ -42,7 +41,7 @@ class IndexManager:
             )
             return {}
 
-    def save_index(self, index: dict[str, Any]) -> None:
+    def save_index(self, index: Dict[str, Any]) -> None:
         """Save the index data to disk as pretty-printed JSON.
 
         Args:
@@ -53,8 +52,8 @@ class IndexManager:
             json.dump(index, f, indent=2, ensure_ascii=False)
 
     def classify_candidates(
-        self, candidates: list[dict[str, Any]]
-    ) -> dict[str, list[dict[str, Any]]]:
+        self, candidates: List[Dict[str, Any]]
+    ) -> Dict[str, List[Dict[str, Any]]]:
         """Classify candidate repositories as new, updated, or skipped.
 
         Args:
@@ -65,7 +64,7 @@ class IndexManager:
             A dict with keys 'new', 'updated', 'skip' mapping to lists.
         """
         index = self.load_index()
-        classification: dict[str, list[dict[str, Any]]] = {
+        classification: Dict[str, List[Dict[str, Any]]] = {
             "new": [],
             "updated": [],
             "skip": [],
@@ -107,7 +106,7 @@ class IndexManager:
         key = f"{owner}/{repo}"
         return key in index
 
-    def add_entries(self, entries: list[dict[str, Any]]) -> None:
+    def add_entries(self, entries: List[Dict[str, Any]]) -> None:
         """Add or update entries in the index.
 
         Overwrites existing entries with the same "owner/repo" key.
@@ -133,7 +132,7 @@ class IndexManager:
         self.save_index(index)
 
     @staticmethod
-    def _parse_iso(timestamp_str: str | None) -> datetime.datetime | None:
+    def _parse_iso(timestamp_str: Optional[str]) -> Optional[datetime.datetime]:
         """Parse an ISO 8601 timestamp string into a datetime object.
 
         Returns None if the string is empty or malformed.

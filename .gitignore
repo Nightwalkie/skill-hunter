@@ -16,7 +16,7 @@ raw-data.json
 Github Report*.md
 
 # Config with secrets
-skill_hunter/config.json
+skills/skill-hunter/scripts/config.json
 
 # OS junk
 .DS_Store

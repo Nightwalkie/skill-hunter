@@ -24,7 +24,9 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Smoke test — config module
-        run: python -c "from skill_hunter.config import load_config; c = load_config(); assert 'github_token' in c; assert 'lookback_days' in c; print('OK')"
+        run: |
+          python -c "import sys; sys.path.insert(0, 'skills/skill-hunter/scripts'); from config import load_config; c = load_config(); assert 'github_token' in c; assert 'lookback_days' in c; print('OK')"
 
       - name: Smoke test — index manager
-        run: python -c "from skill_hunter.index_manager import IndexManager; im = IndexManager(); idx = im.load_index(); assert isinstance(idx, dict); print('OK')"
+        run: |
+          python -c "import sys; sys.path.insert(0, 'skills/skill-hunter/scripts'); from index_manager import IndexManager; im = IndexManager(); idx = im.load_index(); assert isinstance(idx, dict); print('OK')"

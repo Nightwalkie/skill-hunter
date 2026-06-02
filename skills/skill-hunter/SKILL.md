@@ -5,7 +5,7 @@ description: Search GitHub for newly published or updated Claude Code Skills fro
 
 # skill-hunter
 
-This skill defines the Agent workflow for `/skill-hunter`. The crawler script (`skill_hunter/crawler.py`) handles searching GitHub and downloading raw data. The Agent handles judgment, description generation, and report writing.
+This skill defines the Agent workflow for `/skill-hunter`. The crawler script (`skills/skill-hunter/scripts/crawler.py`) handles searching GitHub and downloading raw data. The Agent handles judgment, description generation, and report writing.
 
 ## Workflow
 
@@ -16,7 +16,7 @@ Follow these steps in order. Stop at any step if a required condition is not met
 Execute the crawler script from the project root:
 
 ```bash
-python skill_hunter/crawler.py
+python skills/skill-hunter/scripts/crawler.py
 ```
 
 The crawler will:
@@ -124,8 +124,8 @@ Add all confirmed skills to `skill-index.json` using the `IndexManager.add_entri
 
 ```python
 import json, sys
-sys.path.insert(0, ".")
-from skill_hunter.index_manager import IndexManager
+sys.path.insert(0, "skills/skill-hunter/scripts")
+from index_manager import IndexManager
 
 entries = <paste the list of confirmed entry dicts here as a Python literal>
 

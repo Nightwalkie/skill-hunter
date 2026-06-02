@@ -6,16 +6,20 @@ import time
 import urllib.error
 import urllib.request
 from datetime import datetime, timedelta, timezone
-from typing import Any
+from typing import Any, Dict, List, Optional
 from urllib.parse import urlencode
 
-from .config import load_config
+import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from config import load_config
 
 
 class GitHubClient:
     """Client for searching GitHub repositories, fetching metadata, and downloading files."""
 
-    def __init__(self, config_path: str | None = None) -> None:
+    def __init__(self, config_path: Optional[str] = None) -> None:
         """Initialize the client from a config file.
 
         Args:
@@ -32,21 +36,21 @@ class GitHubClient:
     # ------------------------------------------------------------------
 
     @property
-    def _auth_headers(self) -> dict[str, str]:
+    def _auth_headers(self) -> Dict[str, str]:
         """Return Authorization header if a token is configured, else empty dict."""
         if self.token:
             return {"Authorization": f"Bearer {self.token}"}
         return {}
 
-    def _build_url(self, url: str, params: dict | None = None) -> str:
+    def _build_url(self, url: str, params: Optional[Dict] = None) -> str:
         """Build a full URL with optional query parameters."""
         if params:
             return f"{url}?{urlencode(params)}"
         return url
 
     def _get(
-        self, url: str, params: dict | None = None, timeout: int = 30
-    ) -> dict[str, Any] | None:
+        self, url: str, params: Optional[Dict] = None, timeout: int = 30
+    ) -> Optional[Dict[str, Any]]:
         """Make a GET request expecting a JSON response, with one retry on timeout.
 
         Returns:
@@ -104,7 +108,7 @@ class GitHubClient:
 
     def _get_raw(
         self, url: str, timeout: int = 30
-    ) -> dict[str, Any] | None:
+    ) -> Optional[Dict[str, Any]]:
         """Make a GET request expecting raw text (not JSON).
 
         Returns:
@@ -149,9 +153,9 @@ class GitHubClient:
     def search_repositories(
         self,
         query: str,
-        days_back: int | None = None,
-        max_results: int | None = None,
-    ) -> list[dict[str, Any]]:
+        days_back: Optional[int] = None,
+        max_results: Optional[int] = None,
+    ) -> List[Dict[str, Any]]:
         """Search GitHub repositories matching the given query.
 
         Args:
@@ -192,7 +196,7 @@ class GitHubClient:
             return []
 
         data = result["data"]
-        results: list[dict[str, Any]] = []
+        results: List[Dict[str, Any]] = []
         for item in data.get("items", []):
             results.append(
                 {
@@ -205,7 +209,7 @@ class GitHubClient:
             )
         return results
 
-    def get_repo_metadata(self, owner: str, repo: str) -> dict[str, Any] | None:
+    def get_repo_metadata(self, owner: str, repo: str) -> Optional[Dict[str, Any]]:
         """Fetch metadata for a specific repository.
 
         Args:
@@ -233,7 +237,7 @@ class GitHubClient:
             "description": item["description"],
         }
 
-    def download_file(self, owner: str, repo: str, path: str) -> str | None:
+    def download_file(self, owner: str, repo: str, path: str) -> Optional[str]:
         """Download a file from a repository.
 
         Args:

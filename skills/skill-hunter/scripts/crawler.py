@@ -2,10 +2,12 @@
 
 import json
 import os
+import sys
 
-from skill_hunter.config import load_config, validate_token
-from skill_hunter.github_client import GitHubClient
-from skill_hunter.index_manager import IndexManager
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from config import load_config, validate_token
+from github_client import GitHubClient
+from index_manager import IndexManager
 
 
 def run() -> None:
@@ -26,7 +28,7 @@ def run() -> None:
         github_token: str = config.get("github_token", "") or ""
         if not github_token:
             print(
-                "Error: No GitHub token found in skill_hunter/config.json. "
+                "Error: No GitHub token found in skills/skill-hunter/scripts/config.json. "
                 "Add a Personal Access Token with 'public_repo' scope from "
                 "https://github.com/settings/tokens"
             )
@@ -112,8 +114,8 @@ def run() -> None:
             )
 
         # 6. Write raw-data.json
-        skill_hunter_dir = os.path.dirname(os.path.abspath(__file__))
-        project_root = os.path.dirname(skill_hunter_dir)
+        scripts_dir = os.path.dirname(os.path.abspath(__file__))
+        project_root = os.path.dirname(os.path.dirname(os.path.dirname(scripts_dir)))
         output_path = os.path.join(project_root, "raw-data.json")
 
         with open(output_path, "w", encoding="utf-8") as f:
