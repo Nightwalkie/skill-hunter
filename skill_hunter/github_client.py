@@ -1,10 +1,13 @@
 """GitHub API client for skill-hunter."""
 
 import base64
+import json
+import time
+import urllib.error
+import urllib.request
 from datetime import datetime, timedelta, timezone
 from typing import Any
-
-import requests
+from urllib.parse import urlencode
 
 from .config import load_config
 
@@ -35,31 +38,109 @@ class GitHubClient:
             return {"Authorization": f"Bearer {self.token}"}
         return {}
 
+    def _build_url(self, url: str, params: dict | None = None) -> str:
+        """Build a full URL with optional query parameters."""
+        if params:
+            return f"{url}?{urlencode(params)}"
+        return url
+
     def _get(
         self, url: str, params: dict | None = None, timeout: int = 30
-    ) -> requests.Response | None:
-        """Make a GET request with timeout, one retry on timeout,
-        and connection error handling.
+    ) -> dict[str, Any] | None:
+        """Make a GET request expecting a JSON response, with one retry on timeout.
 
         Returns:
-            The response object, or None if the request could not be completed.
+            A dict with keys ``"status"``, ``"data"``, ``"headers"``,
+            or None if the request could not be completed.
         """
-        try:
-            return requests.get(
-                url, headers=self._auth_headers, params=params, timeout=timeout
-            )
-        except requests.Timeout:
-            print("Network timeout accessing GitHub API. Retrying once...")
+        headers = self._auth_headers
+        headers["Accept"] = "application/vnd.github.v3+json"
+        headers["User-Agent"] = "skill-hunter"
+
+        full_url = self._build_url(url, params)
+
+        for attempt in range(2):
             try:
-                return requests.get(
-                    url, headers=self._auth_headers, params=params, timeout=timeout
-                )
-            except (requests.Timeout, requests.ConnectionError):
-                print("GitHub API unavailable. Skipping this request.")
+                req = urllib.request.Request(full_url, headers=headers)
+                with urllib.request.urlopen(req, timeout=timeout) as response:
+                    data = json.loads(response.read().decode("utf-8"))
+                    # Check rate limit
+                    remaining = response.headers.get("X-RateLimit-Remaining")
+                    if remaining is not None and int(remaining) == 0:
+                        reset_time = response.headers.get(
+                            "X-RateLimit-Reset", "unknown"
+                        )
+                        print(f"  Rate limit exceeded. Resets at: {reset_time}")
+                    return {
+                        "status": response.status,
+                        "data": data,
+                        "headers": dict(response.headers),
+                    }
+            except urllib.error.HTTPError as e:
+                body = e.read().decode("utf-8") if e.fp else ""
+                if e.code == 403:
+                    if "rate limit" in body.lower():
+                        reset = e.headers.get("X-RateLimit-Reset", "unknown")
+                        print(f"  Rate limit exceeded. Resets at: {reset}")
+                        return None
+                    print("  HTTP 403 Forbidden")
+                    return None
+                if e.code == 404:
+                    return None
+                print(f"  HTTP {e.code}")
                 return None
-        except requests.ConnectionError:
-            print("Cannot connect to GitHub. Check your network connection.")
-            return None
+            except urllib.error.URLError as e:
+                if attempt == 0:
+                    print("  Network timeout. Retrying once...")
+                    time.sleep(1)
+                    continue
+                print("  GitHub API unavailable. Skipping this request.")
+                return None
+            except Exception as e:
+                print(f"  Error: {e}")
+                return None
+
+        return None
+
+    def _get_raw(
+        self, url: str, timeout: int = 30
+    ) -> dict[str, Any] | None:
+        """Make a GET request expecting raw text (not JSON).
+
+        Returns:
+            A dict with keys ``"status"``, ``"text"``, ``"headers"``,
+            or None on failure.
+        """
+        headers = self._auth_headers
+        headers["User-Agent"] = "skill-hunter"
+
+        for attempt in range(2):
+            try:
+                req = urllib.request.Request(url, headers=headers)
+                with urllib.request.urlopen(req, timeout=timeout) as response:
+                    text = response.read().decode("utf-8")
+                    return {
+                        "status": response.status,
+                        "text": text,
+                        "headers": dict(response.headers),
+                    }
+            except urllib.error.HTTPError as e:
+                if e.code == 404:
+                    return None
+                print(f"  HTTP {e.code}")
+                return None
+            except urllib.error.URLError as e:
+                if attempt == 0:
+                    print("  Network timeout. Retrying once...")
+                    time.sleep(1)
+                    continue
+                print("  GitHub API unavailable. Skipping this request.")
+                return None
+            except Exception as e:
+                print(f"  Error: {e}")
+                return None
+
+        return None
 
     # ------------------------------------------------------------------
     # Public API
@@ -102,28 +183,15 @@ class GitHubClient:
             "per_page": max_results,
         }
 
-        resp = self._get(url, params=params)
-        if resp is None:
+        result = self._get(url, params=params)
+        if result is None:
             return []
 
-        if resp.status_code == 403 and "rate limit" in resp.text.lower():
-            remaining = resp.headers.get("X-RateLimit-Remaining", "?")
-            reset_ts = resp.headers.get("X-RateLimit-Reset")
-            reset_msg = ""
-            if reset_ts:
-                reset_time = datetime.fromtimestamp(int(reset_ts))
-                reset_msg = f", resets at {reset_time}"
-            print(
-                f"GitHub rate limit exceeded "
-                f"(remaining: {remaining}{reset_msg})"
-            )
+        if result["status"] != 200:
+            print(f"search_repositories: HTTP {result['status']}")
             return []
 
-        if not resp.ok:
-            print(f"search_repositories: HTTP {resp.status_code}")
-            return []
-
-        data = resp.json()
+        data = result["data"]
         results: list[dict[str, Any]] = []
         for item in data.get("items", []):
             results.append(
@@ -149,23 +217,15 @@ class GitHubClient:
             or None on failure.
         """
         url = f"https://api.github.com/repos/{owner}/{repo}"
-        resp = self._get(url)
-        if resp is None:
+        result = self._get(url)
+        if result is None:
             return None
 
-        if resp.status_code == 404:
+        if result["status"] != 200:
+            print(f"get_repo_metadata: HTTP {result['status']}")
             return None
 
-        if resp.status_code == 403 and "rate limit" in resp.text.lower():
-            remaining = resp.headers.get("X-RateLimit-Remaining", "?")
-            print(f"GitHub rate limit exceeded (remaining: {remaining})")
-            return None
-
-        if not resp.ok:
-            print(f"get_repo_metadata: HTTP {resp.status_code}")
-            return None
-
-        item = resp.json()
+        item = result["data"]
         return {
             "stars": item["stargazers_count"],
             "pushed_at": item["pushed_at"],
@@ -185,32 +245,24 @@ class GitHubClient:
             The file contents as a string, or None on failure (including 404).
         """
         url = f"https://api.github.com/repos/{owner}/{repo}/contents/{path}"
-        resp = self._get(url)
-        if resp is None:
+        result = self._get(url)
+        if result is None:
             return None
 
-        if resp.status_code == 404:
+        if result["status"] != 200:
+            print(f"download_file: HTTP {result['status']}")
             return None
 
-        if resp.status_code == 403 and "rate limit" in resp.text.lower():
-            remaining = resp.headers.get("X-RateLimit-Remaining", "?")
-            print(f"GitHub rate limit exceeded (remaining: {remaining})")
-            return None
-
-        if not resp.ok:
-            print(f"download_file: HTTP {resp.status_code}")
-            return None
-
-        item = resp.json()
+        item = result["data"]
 
         # For files < 1 MB the API includes a download_url
         if item.get("download_url"):
-            dl = self._get(item["download_url"])
+            dl = self._get_raw(item["download_url"])
             if dl is None:
                 return None
-            if dl.ok:
-                return dl.text
-            print(f"download_file: download_url returned HTTP {dl.status_code}")
+            if dl["status"] == 200:
+                return dl["text"]
+            print(f"download_file: download_url returned HTTP {dl['status']}")
             return None
 
         # Otherwise decode the base64-encoded content

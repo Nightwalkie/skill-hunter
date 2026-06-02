@@ -22,12 +22,8 @@ Skill Hunter searches GitHub for newly published or updated Claude Code Skill re
 
 ## Prerequisites
 
-- Python 3.8+
+- Python 3.8+ (standard library only — no pip install needed)
 - GitHub Personal Access Token with `public_repo` scope ([create one here](https://github.com/settings/tokens))
-- Install dependencies:
-  ```bash
-  pip install -r skill_hunter/requirements.txt
-  ```
 
 ## Installation
 

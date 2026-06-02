@@ -23,9 +23,6 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Install dependencies
-        run: pip install -r skill_hunter/requirements.txt
-
       - name: Smoke test — config module
         run: python -c "from skill_hunter.config import load_config; c = load_config(); assert 'github_token' in c; assert 'lookback_days' in c; print('OK')"
 
