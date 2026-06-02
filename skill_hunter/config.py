@@ -2,9 +2,9 @@
 
 import json
 import os
+import urllib.error
+import urllib.request
 from typing import Any
-
-import requests
 
 DEFAULT_CONFIG: dict[str, Any] = {
     "github_token": "",
@@ -62,56 +62,58 @@ def validate_token(token: str) -> dict[str, Any]:
             "user": None,
         }
 
-    try:
-        resp = requests.get(
-            "https://api.github.com/user",
-            headers={"Authorization": f"Bearer {token}"},
-            timeout=30,
-        )
-    except requests.Timeout:
-        return {
-            "valid": False,
-            "error": "Could not reach GitHub to validate token. Check your network.",
-            "scopes": [],
-            "user": None,
-        }
-    except requests.ConnectionError:
-        return {
-            "valid": False,
-            "error": "Could not reach GitHub to validate token. Check your network.",
-            "scopes": [],
-            "user": None,
-        }
-
-    if resp.status_code == 401:
-        return {
-            "valid": False,
-            "error": (
-                "Token is invalid or expired. Please generate a new one at "
-                "https://github.com/settings/tokens"
-            ),
-            "scopes": [],
-            "user": None,
-        }
-
-    data = resp.json()
-    scopes_header = resp.headers.get("X-OAuth-Scopes", "")
-    scopes = [s.strip() for s in scopes_header.split(",") if s.strip()]
-
-    if "public_repo" not in scopes and "repo" not in scopes:
-        return {
-            "valid": False,
-            "error": (
-                "Token lacks 'public_repo' scope. "
-                "Add it at https://github.com/settings/tokens"
-            ),
-            "scopes": scopes,
-            "user": data.get("login"),
-        }
-
-    return {
-        "valid": True,
-        "error": None,
-        "scopes": scopes,
-        "user": data.get("login"),
+    url = "https://api.github.com/user"
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Accept": "application/vnd.github.v3+json",
+        "User-Agent": "skill-hunter",
     }
+
+    try:
+        req = urllib.request.Request(url, headers=headers)
+        with urllib.request.urlopen(req, timeout=30) as response:
+            data = json.loads(response.read().decode("utf-8"))
+            scopes_header = response.headers.get("X-OAuth-Scopes", "")
+            scopes = [s.strip() for s in scopes_header.split(",") if s.strip()]
+
+            if "public_repo" not in scopes and "repo" not in scopes:
+                return {
+                    "valid": False,
+                    "error": (
+                        "Token lacks 'public_repo' scope. "
+                        "Add it at https://github.com/settings/tokens"
+                    ),
+                    "scopes": scopes,
+                    "user": data.get("login"),
+                }
+
+            return {
+                "valid": True,
+                "error": None,
+                "scopes": scopes,
+                "user": data.get("login"),
+            }
+    except urllib.error.HTTPError as e:
+        if e.code == 401:
+            return {
+                "valid": False,
+                "error": (
+                    "Token is invalid or expired. Please generate a new one at "
+                    "https://github.com/settings/tokens"
+                ),
+                "scopes": [],
+                "user": None,
+            }
+        return {
+            "valid": False,
+            "error": f"GitHub API returned HTTP {e.code}.",
+            "scopes": [],
+            "user": None,
+        }
+    except urllib.error.URLError:
+        return {
+            "valid": False,
+            "error": "Could not reach GitHub to validate token. Check your network.",
+            "scopes": [],
+            "user": None,
+        }
