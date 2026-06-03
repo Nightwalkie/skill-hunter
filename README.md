@@ -13,7 +13,7 @@ Automatically discover new Claude Code Skills published on GitHub each week, wit
 
 Skill Hunter searches GitHub for newly published or updated Claude Code Skill repositories, downloads their README files, and uses AI to filter genuine skill repos and generate Chinese + English descriptions. The result is a clean Markdown report sorted by stars.
 
-1. **Search** — Queries GitHub for repos mentioning "SKILL.md" and "claude code", pushed in the last 7 days
+1. **Search** — Queries GitHub for repos mentioning "claude code skill", pushed in the last 7 days
 2. **Validate** — Verifies your GitHub token has the required permissions
 3. **Download** — Fetches README.md from each candidate repository
 4. **Filter** — AI reads each README and judges whether it's a genuine skill repository
@@ -54,7 +54,7 @@ Output:
 
 ### Search
 
-Uses the GitHub Repository Search API with the query `"SKILL.md" "claude code" pushed:>YYYY-MM-DD` to find repos that mention both terms and were recently updated. The date range is configurable via `lookback_days`.
+Uses the GitHub Repository Search API with the query `"claude code skill" pushed:>YYYY-MM-DD` to find repos that mention the phrase and were recently updated. The date range is configurable via `lookback_days`.
 
 ### Download
 

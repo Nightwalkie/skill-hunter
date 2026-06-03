@@ -15,7 +15,7 @@ def run() -> None:
 
     Pipeline steps:
         1. Load config and validate GitHub token (mandatory).
-        2. Search GitHub for repos containing SKILL.md + claude code.
+        2. Search GitHub for repos containing "claude code skill".
         3. Classify results via IndexManager (new / updated / skip).
         4. Combine new + updated candidates; discard skipped.
         5. Download README.md and enrich metadata for each candidate.
@@ -55,7 +55,7 @@ def run() -> None:
         client = GitHubClient()
         print("Searching GitHub...")
         search_results = client.search_repositories(
-            '"SKILL.md" "claude code"',
+            '"claude code skill"',
             days_back=lookback_days,
             max_results=max_results,
         )

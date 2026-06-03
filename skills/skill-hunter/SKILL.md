@@ -64,7 +64,7 @@ python "<SCRIPTS>/crawler.py"
 ```
 
 The crawler will:
-- Search GitHub for repos containing `SKILL.md` and `claude code` published/updated within the configured lookback window (`<SCRIPTS>/config.json` -> `lookback_days`, default 7 days).
+- Search GitHub for repos matching `"claude code skill"` published/updated within the configured lookback window (`<SCRIPTS>/config.json` -> `lookback_days`, default 7 days).
 - Classify candidates against `<CWD>/skill-index.json` as **new**, **updated**, or **skip**.
 - Download `README.md` content and repo metadata for each candidate.
 - Write the results to `<CWD>/raw-data.json`.

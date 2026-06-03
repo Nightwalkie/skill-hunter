@@ -158,7 +158,7 @@ class GitHubClient:
         """Search GitHub repositories matching the given query.
 
         Args:
-            query: GitHub search query string (e.g. '"SKILL.md" "claude code"').
+            query: GitHub search query string (e.g. '"claude code skill"').
             days_back: Only consider repos pushed to within this many days.
                 Falls back to ``self.lookback_days`` from config.
             max_results: Maximum results to return.
