@@ -2,15 +2,14 @@
 
 import base64
 import json
+import os
+import sys
 import time
 import urllib.error
 import urllib.request
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 from urllib.parse import urlencode
-
-import os
-import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from config import load_config

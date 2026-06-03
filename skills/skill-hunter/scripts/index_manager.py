@@ -47,9 +47,12 @@ class IndexManager:
         Args:
             index: The index data to persist.
         """
-        os.makedirs(os.path.dirname(self.index_path), exist_ok=True)
-        with open(self.index_path, "w", encoding="utf-8") as f:
-            json.dump(index, f, indent=2, ensure_ascii=False)
+        try:
+            os.makedirs(os.path.dirname(self.index_path), exist_ok=True)
+            with open(self.index_path, "w", encoding="utf-8") as f:
+                json.dump(index, f, indent=2, ensure_ascii=False)
+        except OSError as e:
+            print(f"Warning: Could not save index to {self.index_path}: {e}")
 
     def classify_candidates(
         self, candidates: List[Dict[str, Any]]

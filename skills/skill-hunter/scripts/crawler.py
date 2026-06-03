@@ -28,8 +28,9 @@ def run() -> None:
         github_token: str = config.get("github_token", "") or ""
         if not github_token:
             print(
-                "Error: No GitHub token found in skills/skill-hunter/scripts/config.json. "
-                "Add a Personal Access Token with 'public_repo' scope from "
+                "TOKEN_EMPTY: No GitHub token configured. "
+                "The Agent can help create or update config.json with your token. "
+                "Get a Personal Access Token with 'public_repo' scope at "
                 "https://github.com/settings/tokens"
             )
             return
@@ -37,7 +38,12 @@ def run() -> None:
         print("Validating GitHub token...")
         token_result = validate_token(github_token)
         if not token_result["valid"]:
-            print(f"Token validation failed: {token_result['error']}")
+            print(
+                f"TOKEN_INVALID: {token_result['error']} "
+                "The Agent can help update config.json with a new token. "
+                "Generate one at https://github.com/settings/tokens "
+                "(check 'public_repo' scope)."
+            )
             return
 
         print(f"Token validated (user: {token_result['user']})")
@@ -123,6 +129,9 @@ def run() -> None:
 
         print(f"Wrote {len(output)} entries to raw-data.json.")
 
+    except KeyboardInterrupt:
+        print("\nInterrupted by user.")
+        raise
     except Exception as e:
         print(f"Error: {e}")
 
